@@ -54,10 +54,9 @@ public class MuilteAvatarActivity extends AppCompatActivity {
     };
 
     private void initData() {
-        for (int n = 0; n < 16; n++) {
+        for (int n = 0; n < 50; n++) {
             List<String> urls = new ArrayList<>();
-//            for (int m = 0; m < new Random().nextInt(9) + 1; m++) {
-            for (int m = 0; m < 9; m++) {
+            for (int m = 0; m < new Random().nextInt(9) + 1; m++) {
                 urls.add(IMG_URL_ARR[new Random().nextInt(IMG_URL_ARR.length)]);
             }
             mdatas.add(urls);
