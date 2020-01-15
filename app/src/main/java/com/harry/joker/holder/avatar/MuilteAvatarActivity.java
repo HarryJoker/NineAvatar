@@ -1,6 +1,7 @@
 package com.harry.joker.holder.avatar;
 
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
@@ -11,10 +12,15 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.alibaba.fastjson.JSONArray;
+import com.alibaba.fastjson.JSONObject;
 import com.harry.joker.nine.avatar.JokerNineAvatar;
+import com.harry.joker.nine.avatar.helper.RequestOptions;
 import com.harry.joker.nine.avatar.layout.WechatLayoutManager;
+import com.lzy.okgo.OkGo;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
 
@@ -46,15 +52,15 @@ public class MuilteAvatarActivity extends AppCompatActivity {
 
 
             //读不出图片的地址，验证placehold资源替换对应位置的头像
-            "https://pic3.zhimg.com/0c149770fc2e16f4a89e6fc479272946_xll_____Can not load image by place image_____.jpg",
-            "https://pic1.zhimg.com/76903410e4831571e19a10f39717988c_xll_____Can not load image by place image_____.png",
-            "https://pic3.zhimg.com/33c6cf59163b3f17ca0c091a5c0d9272_xll_____Can not load image by place image_____.jpg",
-            "https://pic4.zhimg.com/52e093cbf96fd0d027136baf9b5cdcb3_xll_____Can not load image by place image_____.png",
-            "https://pic3.zhimg.com/f6dc1c1cecd7ba8f4c61c7c31847773e_xll_____Can not load image by place image_____.jpg",
+//            "https://pic3.zhimg.com/0c149770fc2e16f4a89e6fc479272946_xll_____Can not load image by place image_____.jpg",
+//            "https://pic1.zhimg.com/76903410e4831571e19a10f39717988c_xll_____Can not load image by place image_____.png",
+//            "https://pic3.zhimg.com/33c6cf59163b3f17ca0c091a5c0d9272_xll_____Can not load image by place image_____.jpg",
+//            "https://pic4.zhimg.com/52e093cbf96fd0d027136baf9b5cdcb3_xll_____Can not load image by place image_____.png",
+//            "https://pic3.zhimg.com/f6dc1c1cecd7ba8f4c61c7c31847773e_xll_____Can not load image by place image_____.jpg",
     };
 
     private void initData() {
-        for (int n = 0; n < 50; n++) {
+        for (int n = 0; n < 30; n++) {
             List<String> urls = new ArrayList<>();
             for (int m = 0; m < new Random().nextInt(9) + 1; m++) {
                 urls.add(IMG_URL_ARR[new Random().nextInt(IMG_URL_ARR.length)]);
@@ -119,11 +125,29 @@ public class MuilteAvatarActivity extends AppCompatActivity {
             content.setText("position:" + position+  ", Size:" + (urls == null ? "0" : urls.size()));
             JokerNineAvatar.init(MuilteAvatarActivity.this)
                     .setUniqueTag(position)
-                    .setImageWidth(120)
+                    .setUrls(new RequestOptions() {
+                        @Override
+                        public com.lzy.okgo.request.base.Request getRequest() {
+                            return OkGo.get("http://192.168.40.207:8888/urls.php");
+                        }
+
+                        @Override
+                        public RequestOptions.OnResponseParseCallback getPraseCallback() {
+                            return new OnResponseParseCallback() {
+                                @Override
+                                public String[] onParseReponse(String repsone) {
+                                    List<String> urls = JSONObject.parseObject(repsone,ArrayList.class);
+                                    Log.d("remote", "async load done, urls:" + Arrays.deepToString(urls.toArray()));
+                                    return urls == null ? null : urls.toArray(new String[]{});
+                                }
+                            };
+                        }
+                    })
+                    .setImageWidth(150)
                     .setDividerWidth(5)
                     .setLayoutManager(new WechatLayoutManager())
-                    .setUrls(urls.toArray(new String[]{}))
-                    .setPlaceholder(R.mipmap.a)
+//                    .setUrls(urls.toArray(new String[]{}))
+                    .setPlaceholder(R.mipmap.ic_launcher)
                     .setImageView(avatar)
                     .build();
         }

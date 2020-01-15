@@ -3,7 +3,9 @@ package com.harry.joker.nine.avatar.helper;
 import android.content.Context;
 import android.graphics.Color;
 import android.widget.ImageView;
+
 import androidx.annotation.ColorInt;
+
 import com.harry.joker.nine.avatar.R;
 import com.harry.joker.nine.avatar.layout.DingLayoutManager;
 import com.harry.joker.nine.avatar.layout.ILayoutManager;
@@ -14,7 +16,7 @@ public class Builder {
     private static final int DEFAULT_AVATAR              = R.mipmap.ic_avatar;
 //    private static final int DEFAULT_NINE_AVATAR         = R.mipmap.ic_nine_avatar;
     private static final int DEFAULT_NINE_AVATAR_WIDTH   = 180;
-    private static final int DEFAULT_SINGLE_AVATAR_WIDTH = 50;
+    private static final int DEFAULT_SINGLE_AVATAR_WIDTH = 0;
     private static final int DEFAULT_DIVIDER_WIDTH       = 10;
     private static final int DEFAFLT_DIVIDER_COLOR       = Color.LTGRAY;
 
@@ -47,12 +49,17 @@ public class Builder {
 
     public String[] urls;
 
+    public RequestOptions mRequestOptions;
+
     public Builder(Context context) {
         this.context = context;
     }
 
     public Builder setImageView(ImageView imageView) {
         this.imageView = imageView;
+        if (tag != null) {
+            this.imageView.setTag(tag);
+        }
         return this;
     }
 
@@ -89,19 +96,49 @@ public class Builder {
 
     public Builder setUniqueTag(Object obj) {
         this.tag = obj;
+        if (imageView != null) {
+            this.imageView.setTag(tag);
+        }
         return this;
     }
+
+    public Builder setUrls(RequestOptions requestOptions) {
+        this.mRequestOptions = requestOptions;
+        if (mRequestOptions != null) {
+            this.mRequestOptions.setOnUrlsResponse(mUrlsResponse);
+        }
+        return this;
+    }
+
+    private RequestOptions.OnUrlsResponse mUrlsResponse = new RequestOptions.OnUrlsResponse() {
+        @Override
+        public void onUrlsResponse(Object tag, String[] urls) {
+            resetBuilerForUrls(urls);
+        }
+    };
+
+    /**
+     * 异步请求图片回来，根据urls重新初始化builder进行build加载合成图片
+     * 1，更新urls属性
+     * 2，更新count属性
+     * 3，RequestOptions设置null属性
+     * @param urls
+     */
+    private void resetBuilerForUrls(String[] urls) {
+        this.urls = urls;
+        this.count = urls == null ? 0 : urls.length;
+        mRequestOptions = null;
+
+        JokerLog.d(this.getClass().getSimpleName() + ", Setup async loaded remoteUrls， urls：" + count + "  contine next build to async nineAvatar");
+
+        build();
+    }
+
 
     public void build() {
         if (imageView == null) {
             throw new NullPointerException("Async JokerBine must ensure the ImageView can not null");
         }
-
-        if (tag == null) {
-            tag = this;
-        }
-
-        imageView.setTag(tag);
 
         if (layoutManager == null) {
             layoutManager = new WechatLayoutManager();
@@ -110,8 +147,15 @@ public class Builder {
         //计算效验单个小头像的宽度
         itemWidth = makeItemWidth(imageWidth, dividerWidth, layoutManager, count);
 
-        NineAvatarHelper.init().load(this);
+        if (mRequestOptions == null) {
+            NineAvatarHelper.init().load(this);
+        } else {
+            mRequestOptions.apply(tag);
+        }
+
+        JokerLog.d(this.getClass().getSimpleName() + ", Builder build done");
     }
+
 
     /**
      * 根据最终生成bitmap的尺寸，计算单个bitmap尺寸

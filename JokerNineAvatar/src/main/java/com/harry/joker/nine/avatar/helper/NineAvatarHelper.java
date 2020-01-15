@@ -1,7 +1,7 @@
 package com.harry.joker.nine.avatar.helper;
 
 import android.graphics.Bitmap;
-import android.util.Log;
+
 import com.harry.joker.nine.avatar.listener.OnNineAvatarCallback;
 
 public class NineAvatarHelper {
@@ -24,21 +24,23 @@ public class NineAvatarHelper {
      * @param builder
      */
     private void loadNineAvatarByUrls(final Builder builder) {
-        Bitmap result = BitmapLoader.getInstance(builder.context).loadBuilderFromCache(builder);
-        if (result != null) {
-            setNineAvatar(builder, result);
-            return;
-        }
-
         BitmapLoader.getInstance(builder.context).aysncLoadBuilder(builder, new OnNineAvatarCallback() {
             @Override
             public void onHanldeAvatar(Bitmap result) {
                 setNineAvatar(builder, result);
             }
+
+            @Override
+            public void onHanldePlaceholder(Bitmap placeholder) {
+                setNineAvatar(builder, placeholder);
+            }
         });
     }
 
     public void load(Builder builder) {
+
+        builder.imageView.setImageResource(builder.placeholder);
+
         if (builder.urls != null && builder.urls.length > 0) {
             loadNineAvatarByUrls(builder);
         }
@@ -55,16 +57,16 @@ public class NineAvatarHelper {
     private void setNineAvatar(Builder b, Bitmap result) {
          // 给ImageView设置最终的组合Bitmap
         StringBuilder builder = new StringBuilder();
-        builder.append("position: " + b.tag + "\n");
+        builder.append("position: " + b.tag + "， ");
         if (b != null && b.tag != null && b.imageView != null && b.imageView.getTag() != null) {
-            builder.append("ImageTag: " + b.imageView.getTag() + ", Task Tag: " + b.tag + "\n");
+            builder.append("ImageTag: " + b.imageView.getTag() + ", Task Tag: " + b.tag);
             if (b.tag.equals(b.imageView.getTag())) {
                 b.imageView.setImageBitmap(result);
             }
         } else {
             builder.append("ImageTag: null  , Task Tag: " + b.tag + "\n");
         }
-        Log.d("Tag", builder.toString());
+        JokerLog.d(this.getClass().getSimpleName() + ", " + builder.toString());
     }
 
     /**

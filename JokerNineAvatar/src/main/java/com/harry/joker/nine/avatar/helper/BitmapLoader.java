@@ -2,12 +2,11 @@ package com.harry.joker.nine.avatar.helper;
 
 import android.content.Context;
 import android.graphics.Bitmap;
-import android.util.Log;
 
-import com.jakewharton.disklrucache.DiskLruCache;
 import com.harry.joker.nine.avatar.cache.DiskLruCacheHelper;
 import com.harry.joker.nine.avatar.cache.LruCacheHelper;
 import com.harry.joker.nine.avatar.listener.OnNineAvatarCallback;
+import com.jakewharton.disklrucache.DiskLruCache;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
@@ -123,7 +122,7 @@ public class BitmapLoader {
         String key = Utils.hashKeyFormUrl(url);
         Bitmap bitmap = lruCacheHelper.getBitmapFromMemCache(key);
         if (bitmap != null) {
-            Log.e(TAG, "load from memory: nine_avatar ..........");
+            JokerLog.d(this.getClass().getSimpleName() + ", load NineAvatar image from memory");
             return bitmap;
         }
 
@@ -131,7 +130,7 @@ public class BitmapLoader {
             // 尝试从磁盘缓存中读取
             bitmap = loadBitmapFromDiskCache(url, reqWidth, reqHeight);
             if (bitmap != null) {
-                Log.e(TAG, "load from disk: nine_image ..........");
+                JokerLog.d(this.getClass().getSimpleName() + " load NineAvatar from disk");
                 return bitmap;
             }
         } catch (IOException e) {
@@ -145,6 +144,7 @@ public class BitmapLoader {
     }
 
     public void aysncLoadBuilder(final Builder builder, final OnNineAvatarCallback callback) {
+        //Muilte avatar DownLoad finish Callback
         NineAvatarCallBack nineAvatarCallBack = new NineAvatarCallBack(builder.count) {
             @Override
             public void onCompeleteNineBitmap(Bitmap avatar) {
@@ -160,6 +160,22 @@ public class BitmapLoader {
                 return result;
             }
         };
+
+        //取缓存
+        Bitmap result = loadBuilderFromCache(builder);
+        if (result != null) {
+            callback.onHanldeAvatar(result);
+            return;
+        }
+
+        //生成PlaceHolder占位符
+        Bitmap placeholder = loadBitmapFromRes(builder.placeholder, builder.itemWidth, builder.itemWidth);
+        result = builder.layoutManager.makePlaceholderAvatar(builder.imageWidth, builder.itemWidth, builder.dividerWidth, builder.dividerColor, builder.count, placeholder);
+        if (result != null) {
+            callback.onHanldeAvatar(result);
+        }
+
+        //取每个格子的图片
         for (int index = 0; index < builder.urls.length; index++) {
             asyncLoadBitmap(index, builder.urls[index], builder.placeholder, builder.itemWidth, builder.itemWidth, nineAvatarCallBack);
         }
@@ -172,7 +188,7 @@ public class BitmapLoader {
                 Bitmap bitmap = loadBitmap(url, reqWidth, reqHeight);
                 if (bitmap == null) {
                     //加载图像用占位符替换
-                    bitmap = loadBitmapFromRes(place, reqWidth, reqHeight);;
+                    bitmap = loadBitmapFromRes(place, reqWidth, reqHeight);
                 }
                 nineAvatarCallBack.onTaskCompeleteBitmap(index, bitmap);
             }
@@ -200,7 +216,7 @@ public class BitmapLoader {
                 editor.commit();
                 mDiskLruCache.flush();
 
-                Log.d("Cache", "cache the nine avatar to cache ........");
+                JokerLog.d(this.getClass().getSimpleName() +", NineAvatar image to Cache ........");
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -224,7 +240,7 @@ public class BitmapLoader {
         String key = Utils.hashKeyFormUrl(url);
         Bitmap bitmap = lruCacheHelper.getBitmapFromMemCache(key);
         if (bitmap != null) {
-            Log.e(TAG, "load from memory:" + url);
+            JokerLog.d(this.getClass().getSimpleName() + " load Res from memory:" + url);
             return bitmap;
         }
 
@@ -232,7 +248,7 @@ public class BitmapLoader {
             // 尝试从磁盘缓存中读取
             bitmap = loadBitmapFromDiskCache(url, reqWidth, reqHeight);
             if (bitmap != null) {
-                Log.e(TAG, "load from disk:" + url);
+                JokerLog.d(this.getClass().getSimpleName() + " load Res from disk:" + url);
                 return bitmap;
             }
 
@@ -248,7 +264,7 @@ public class BitmapLoader {
                 mDiskLruCache.flush();
             }
             if (bitmap != null) {
-                Log.e(TAG, "load from Res:" + url);
+                JokerLog.d(this.getClass().getSimpleName() + " load Res from Resource :" + url);
                 return bitmap;
             }
 
@@ -279,7 +295,7 @@ public class BitmapLoader {
         String key = Utils.hashKeyFormUrl(url);
         Bitmap bitmap = lruCacheHelper.getBitmapFromMemCache(key);
         if (bitmap != null) {
-            Log.e(TAG, "load from memory:" + url);
+            JokerLog.d(this.getClass().getSimpleName() + " load from memory:" + url);
             return bitmap;
         }
 
@@ -287,13 +303,13 @@ public class BitmapLoader {
             // 尝试从磁盘缓存中读取
             bitmap = loadBitmapFromDiskCache(url, reqWidth, reqHeight);
             if (bitmap != null) {
-                Log.e(TAG, "load from disk:" + url);
+                JokerLog.d(this.getClass().getSimpleName() + " load from disk:" + url);
                 return bitmap;
             }
             // 尝试下载
             bitmap = loadBitmapFromHttp(url, reqWidth, reqHeight);
             if (bitmap != null) {
-                Log.e(TAG, "load from http:" + url);
+                JokerLog.d(this.getClass().getSimpleName() + " load from http:" + url);
                 return bitmap;
             }
         } catch (IOException e) {
@@ -338,7 +354,7 @@ public class BitmapLoader {
             }
             return true;
         } catch (IOException e) {
-            Log.e(TAG, "downloadBitmap failed." + e);
+            JokerLog.d(this.getClass().getSimpleName() + " downloadBitmap failed." + e);
         } finally {
             if (urlConnection != null) {
                 urlConnection.disconnect();

@@ -3,8 +3,6 @@ package com.harry.joker.nine.avatar.helper;
 import android.graphics.Bitmap;
 import android.os.Handler;
 
-import com.harry.joker.nine.avatar.listener.OnHandlerListener;
-
 public abstract class NineAvatarCallBack {
 
     private int i = 0;

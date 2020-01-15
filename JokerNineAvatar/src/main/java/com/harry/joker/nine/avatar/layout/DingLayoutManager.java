@@ -4,15 +4,16 @@ import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
 
-public class DingLayoutManager implements ILayoutManager {
+public class DingLayoutManager extends PlaceholderLayoutManager {
+
     @Override
-    public Bitmap makeNineAvatar(int size, int subSize, int gap, int gapColor, Bitmap[] bitmaps) {
-        Bitmap result = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888);
+    public Bitmap makeNineAvatar(int imageWidth, int itemWidth, int dividerWidth, int dividerColor, Bitmap[] bitmaps) {
+        Bitmap result = Bitmap.createBitmap(imageWidth, imageWidth, Bitmap.Config.ARGB_8888);
         Canvas canvas = new Canvas(result);
-        if (gapColor == 0) {
-            gapColor = Color.WHITE;
+        if (dividerColor == 0) {
+            dividerColor = Color.WHITE;
         }
-        canvas.drawColor(gapColor);
+        canvas.drawColor(dividerColor);
 
         int count = bitmaps.length;
         Bitmap subBitmap;
@@ -23,17 +24,17 @@ public class DingLayoutManager implements ILayoutManager {
             if (bitmaps[i] == null) {
                 continue;
             }
-            subBitmap = Bitmap.createScaledBitmap(bitmaps[i], size, size, true);
+            subBitmap = Bitmap.createScaledBitmap(bitmaps[i], imageWidth, imageWidth, true);
             if (count == 2 || (count == 3 && i == 0)) {
-                subBitmap = Bitmap.createBitmap(subBitmap, (size + gap) / 4, 0, (size - gap) / 2, size);
+                subBitmap = Bitmap.createBitmap(subBitmap, (imageWidth + dividerWidth) / 4, 0, (imageWidth - dividerWidth) / 2, imageWidth);
             } else if ((count == 3 && (i == 1 || i == 2)) || count == 4) {
-                subBitmap = Bitmap.createBitmap(subBitmap, (size + gap) / 4, (size + gap) / 4, (size - gap) / 2, (size - gap) / 2);
+                subBitmap = Bitmap.createBitmap(subBitmap, (imageWidth + dividerWidth) / 4, (imageWidth + dividerWidth) / 4, (imageWidth - dividerWidth) / 2, (imageWidth - dividerWidth) / 2);
             }
 
             int dx = dxy[i][0];
             int dy = dxy[i][1];
 
-            canvas.drawBitmap(subBitmap, dx * (size + gap) / 2.0f, dy * (size + gap) / 2.0f, null);
+            canvas.drawBitmap(subBitmap, dx * (imageWidth + dividerWidth) / 2.0f, dy * (imageWidth + dividerWidth) / 2.0f, null);
         }
         return result;
     }
