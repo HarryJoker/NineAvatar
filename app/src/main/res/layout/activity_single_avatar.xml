@@ -12,26 +12,30 @@
         android:gravity="center_horizontal"
         android:orientation="vertical">
 
-        <com.othershe.library.NiceImageView
+        <com.makeramen.roundedimageview.RoundedImageView
             android:id="@+id/nice_iv1"
             android:layout_width="180dp"
+            android:src="@mipmap/a"
+            app:riv_border_width="1dp"
+            app:riv_border_color="#ddd"
             android:layout_height="180dp"
             android:layout_marginTop="10dp"
-            app:is_circle="true" />
+            app:riv_corner_radius="90dp" />
 
-        <com.othershe.library.NiceImageView
+        <com.makeramen.roundedimageview.RoundedImageView
             android:id="@+id/nice_iv2"
             android:layout_width="180dp"
             android:layout_height="180dp"
             android:layout_marginTop="10dp"
-            app:is_circle="true" />
+            app:riv_corner_radius="90dp"
+             />
 
-        <com.othershe.library.NiceImageView
+        <com.makeramen.roundedimageview.RoundedImageView
             android:id="@+id/nice_iv3"
             android:layout_width="180dp"
             android:layout_height="180dp"
             android:layout_marginTop="10dp"
-            app:is_circle="true" />
+            app:riv_corner_radius="90dp" />
 
 
         <ImageView

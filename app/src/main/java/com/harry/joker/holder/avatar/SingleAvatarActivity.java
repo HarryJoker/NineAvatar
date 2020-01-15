@@ -1,24 +1,14 @@
 package com.harry.joker.holder.avatar;
 
-import androidx.appcompat.app.AppCompatActivity;
-
-import android.Manifest;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.widget.ImageView;
-
+import androidx.appcompat.app.AppCompatActivity;
 import com.harry.joker.nine.avatar.JokerNineAvatar;
 import com.harry.joker.nine.avatar.layout.DingLayoutManager;
 import com.harry.joker.nine.avatar.layout.WechatLayoutManager;
-import com.othershe.library.NiceImageView;
-
-import java.util.List;
-
-import pub.devrel.easypermissions.AfterPermissionGranted;
-import pub.devrel.easypermissions.AppSettingsDialog;
-import pub.devrel.easypermissions.EasyPermissions;
 
 public class SingleAvatarActivity extends AppCompatActivity {
 
@@ -34,9 +24,9 @@ public class SingleAvatarActivity extends AppCompatActivity {
             "http://img.hb.aicdn.com/73f2fbeb01cd3fcb2b4dccbbb7973aa1a82c420b21079-5yj6fx_fw658",
     };
 
-    NiceImageView imageView1;
-    NiceImageView imageView2;
-    NiceImageView imageView3;
+    ImageView imageView1;
+    ImageView imageView2;
+    ImageView imageView3;
     ImageView imageView4;
     ImageView imageView5;
     ImageView imageView6;
@@ -85,38 +75,33 @@ public class SingleAvatarActivity extends AppCompatActivity {
         imageView9 = findViewById(R.id.iv9);
         imageView10 = findViewById(R.id.iv10);
         imageView11 = findViewById(R.id.iv11);
-        requestStoragePermission();
+
+        loadNineAvatar();
     }
 
-    @AfterPermissionGranted(1000)
-    private void requestStoragePermission() {
-        String[] perms = {Manifest.permission.WRITE_EXTERNAL_STORAGE};
-        if (EasyPermissions.hasPermissions(this, perms)) {
-            loadDingBitmap(imageView1, 2);
+    private void loadNineAvatar() {
+        loadDingBitmap(imageView1, 2);
 
-            loadDingBitmap(imageView2, 3);
+        loadDingBitmap(imageView2, 3);
 
-            loadDingBitmap(imageView3, 4);
+        loadDingBitmap(imageView3, 4);
 
-            loadWechatBitmap(imageView4, 2);
+        loadWechatBitmap(imageView4, 2);
 
-            loadWechatBitmap(imageView5, 3);
+        loadWechatBitmap(imageView5, 3);
 
-            loadWechatBitmap(imageView6, 4);
+        loadWechatBitmap(imageView6, 4);
 
-            loadWechatBitmap(imageView7, 5);
+        loadWechatBitmap(imageView7, 5);
 
-            loadWechatBitmap(imageView8, 6);
+        loadWechatBitmap(imageView8, 6);
 
-            loadWechatBitmap(imageView9, 7);
+        loadWechatBitmap(imageView9, 7);
 
-            loadWechatBitmap(imageView10, 8);
+        loadWechatBitmap(imageView10, 8);
 
-            loadWechatBitmap(imageView11, 9);
+        loadWechatBitmap(imageView11, 9);
 
-        } else {
-            EasyPermissions.requestPermissions(this, "need storage permission", 1000, perms);
-        }
     }
 
 
