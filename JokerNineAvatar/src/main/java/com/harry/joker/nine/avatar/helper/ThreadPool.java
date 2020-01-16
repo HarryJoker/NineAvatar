@@ -1,6 +1,5 @@
 package com.harry.joker.nine.avatar.helper;
 
-import androidx.annotation.NonNull;
 
 import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.ThreadFactory;
@@ -27,7 +26,7 @@ public class ThreadPool {
         private final AtomicInteger mCount = new AtomicInteger();
 
         @Override
-        public Thread newThread(@NonNull Runnable runnable) {
+        public Thread newThread( Runnable runnable) {
             return new Thread(runnable, "download_task#" + mCount.getAndIncrement());
         }
     };

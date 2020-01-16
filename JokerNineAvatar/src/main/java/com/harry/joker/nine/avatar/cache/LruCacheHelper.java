@@ -1,9 +1,7 @@
 package com.harry.joker.nine.avatar.cache;
 
 import android.graphics.Bitmap;
-
-import androidx.collection.LruCache;
-
+import android.util.LruCache;
 
 public class LruCacheHelper {
     private LruCache<String, Bitmap> mMemoryCache;

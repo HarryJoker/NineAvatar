@@ -1,7 +1,6 @@
 package com.harry.joker.holder.avatar;
 
 import android.os.Bundle;
-import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
@@ -12,21 +11,23 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
-import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.harry.joker.nine.avatar.JokerNineAvatar;
-import com.harry.joker.nine.avatar.helper.RequestOptions;
 import com.harry.joker.nine.avatar.layout.WechatLayoutManager;
-import com.lzy.okgo.OkGo;
+import com.harry.joker.nine.avatar.remote.Options;
+import com.scwang.smartrefresh.layout.SmartRefreshLayout;
+import com.scwang.smartrefresh.layout.api.RefreshLayout;
+import com.scwang.smartrefresh.layout.listener.OnRefreshListener;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
 
 public class MuilteAvatarActivity extends AppCompatActivity {
 
     private RecyclerView mRecyclerView;
+
+    private SmartRefreshLayout mRefreshLayout;
 
     private List<List<String>> mdatas = new ArrayList<>();
 
@@ -77,6 +78,10 @@ public class MuilteAvatarActivity extends AppCompatActivity {
 
         initData();
 
+        mRefreshLayout = findViewById(R.id.refresh);
+
+        mRefreshLayout.setOnRefreshListener(mOnRefreshListener);
+
         mRecyclerView =  findViewById(R.id.rc_avatar);
 
         mRecyclerView.setLayoutManager(new LinearLayoutManager(this));
@@ -84,6 +89,14 @@ public class MuilteAvatarActivity extends AppCompatActivity {
         mRecyclerView.setAdapter(new AvatarAdapter());
 
     }
+
+    private OnRefreshListener mOnRefreshListener = new OnRefreshListener() {
+        @Override
+        public void onRefresh(RefreshLayout refreshLayout) {
+            mRecyclerView.getAdapter().notifyDataSetChanged();
+            refreshLayout.finishRefresh(500);
+        }
+    };
 
     class AvatarAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
 
@@ -110,6 +123,16 @@ public class MuilteAvatarActivity extends AppCompatActivity {
 
     }
 
+    private Options.OnParseCallback mParseCallback = new Options.OnParseCallback() {
+        @Override
+        public String[] parseResponse(String content) {
+            List<String> urls = JSONObject.parseObject(content, ArrayList.class);
+//            Log.d("remote", "async load done, urls:" + Arrays.deepToString(urls.toArray()));
+            return urls == null ? null : urls.toArray(new String[]{});
+        }
+    };
+
+
     class NineAvatarViewHolder extends RecyclerView.ViewHolder {
 
         ImageView avatar;
@@ -122,27 +145,19 @@ public class MuilteAvatarActivity extends AppCompatActivity {
         }
 
         public void bindAvatar(List<String> urls, int position) {
+
+//            Log.d("JokerNineAvatar", "bind position:" + position);
+
             content.setText("position:" + position+  ", Size:" + (urls == null ? "0" : urls.size()));
+            Options options = Options.with(MuilteAvatarActivity.this)
+                    .load("http://192.168.40.207:8888/urls.php")
+                    .param("position", position + "")
+                    .method(Options.HTTP_METHOD_GET)
+                    .apply(mParseCallback);
             JokerNineAvatar.init(MuilteAvatarActivity.this)
                     .setUniqueTag(position)
-                    .setUrls(new RequestOptions() {
-                        @Override
-                        public com.lzy.okgo.request.base.Request getRequest() {
-                            return OkGo.get("http://192.168.40.207:8888/urls.php");
-                        }
-
-                        @Override
-                        public RequestOptions.OnResponseParseCallback getPraseCallback() {
-                            return new OnResponseParseCallback() {
-                                @Override
-                                public String[] onParseReponse(String repsone) {
-                                    List<String> urls = JSONObject.parseObject(repsone,ArrayList.class);
-                                    Log.d("remote", "async load done, urls:" + Arrays.deepToString(urls.toArray()));
-                                    return urls == null ? null : urls.toArray(new String[]{});
-                                }
-                            };
-                        }
-                    })
+//                    .setUrls(mdatas.get(position).toArray(new String[]{}))
+                    .setUrls(options)
                     .setImageWidth(150)
                     .setDividerWidth(5)
                     .setLayoutManager(new WechatLayoutManager())

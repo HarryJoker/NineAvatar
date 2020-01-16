@@ -1,8 +1,9 @@
 package com.harry.joker.nine.avatar.helper;
 
+import android.content.Context;
 import android.graphics.Bitmap;
-
-import com.harry.joker.nine.avatar.listener.OnNineAvatarCallback;
+import com.harry.joker.nine.avatar.remote.Options;
+import com.harry.joker.nine.avatar.remote.RemoteLoader;
 
 public class NineAvatarHelper {
 
@@ -24,28 +25,23 @@ public class NineAvatarHelper {
      * @param builder
      */
     private void loadNineAvatarByUrls(final Builder builder) {
-        BitmapLoader.getInstance(builder.context).aysncLoadBuilder(builder, new OnNineAvatarCallback() {
+        BitmapLoader.getInstance(builder.context).aysncLoadBuilder(builder, new Builder.OnNineAvatarCallback(){
             @Override
-            public void onHanldeAvatar(Bitmap result) {
-                setNineAvatar(builder, result);
-            }
-
-            @Override
-            public void onHanldePlaceholder(Bitmap placeholder) {
-                setNineAvatar(builder, placeholder);
+            public void onCompeleteAvatar(String tip, Bitmap bitmap) {
+                refreshNineAvatar(builder, bitmap, tip);
             }
         });
     }
 
     public void load(Builder builder) {
-
-        builder.imageView.setImageResource(builder.placeholder);
-
         if (builder.urls != null && builder.urls.length > 0) {
             loadNineAvatarByUrls(builder);
         }
     }
 
+    public void loadOptions(Context context, Options options, Options.OnRemoteCallback callback) {
+        RemoteLoader.getInstance(context).asyncLoadRemote(options.mUrl, options.mMethod, options.mParams, options.mHeaders, options.mParser, callback);
+    }
 
     /**
      * RecycleView通过Tag找到在屏幕中显示的ViewHolder进行设置Bitmap
@@ -54,12 +50,12 @@ public class NineAvatarHelper {
      * @param b
      * @param result
      */
-    private void setNineAvatar(Builder b, Bitmap result) {
+    private void refreshNineAvatar(Builder b, Bitmap result, String tip) {
          // 给ImageView设置最终的组合Bitmap
         StringBuilder builder = new StringBuilder();
-        builder.append("position: " + b.tag + "， ");
+        builder.append("position: " + b.tag + ", " + tip + "， ");
         if (b != null && b.tag != null && b.imageView != null && b.imageView.getTag() != null) {
-            builder.append("ImageTag: " + b.imageView.getTag() + ", Task Tag: " + b.tag);
+            builder.append("ImageTag: " + b.imageView.getTag() + ", urls:" + b.count + ", Task Tag: " + b.tag);
             if (b.tag.equals(b.imageView.getTag())) {
                 b.imageView.setImageBitmap(result);
             }

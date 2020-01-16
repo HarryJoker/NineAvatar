@@ -1,13 +1,16 @@
 package com.harry.joker.nine.avatar.helper;
 
 import android.content.Context;
+import android.content.res.Resources;
 import android.graphics.Bitmap;
+import android.os.Handler;
+import android.util.Log;
 
 import com.harry.joker.nine.avatar.cache.DiskLruCacheHelper;
 import com.harry.joker.nine.avatar.cache.LruCacheHelper;
+import com.harry.joker.nine.avatar.cache.disklrucache.DiskLruCache;
+import com.harry.joker.nine.avatar.listener.OnMuilteCompeleteListener;
 import com.harry.joker.nine.avatar.listener.OnNineAvatarCallback;
-import com.jakewharton.disklrucache.DiskLruCache;
-
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.ByteArrayOutputStream;
@@ -32,7 +35,9 @@ public class BitmapLoader {
 
     private volatile static BitmapLoader manager;
 
-    private Context mContext;
+    private Resources mResources;
+
+    private Handler mHandler = new Handler();
 
     public static BitmapLoader getInstance(Context context) {
         if (manager == null) {
@@ -52,7 +57,7 @@ public class BitmapLoader {
 
 
     private BitmapLoader(Context context) {
-        this.mContext = context;
+        mResources = context.getResources();
         mDiskLruCache = new DiskLruCacheHelper(context).mDiskLruCache;
         lruCacheHelper = new LruCacheHelper();
         compressHelper = CompressHelper.getInstance();
@@ -61,53 +66,74 @@ public class BitmapLoader {
         undoTasks = new HashMap<>();
     }
 
-//    public void asyncLoadBuilder(final Builder builder) {
-//        Bitmap defaultBitmap = null;
-//        if (builder.placeholder != 0) {
-//            defaultBitmap = CompressHelper.getInstance().compressResource(builder.context.getResources(), builder.placeholder, builder.itemWidth, builder.itemWidth);
-//        }
-//        ProgressHandler handler = new ProgressHandler(defaultBitmap, builder.count, new OnHandlerListener() {
-//            @Override
-//            public void onComplete(Bitmap[] bitmaps) {
-////                saveBuildSynthesizedBitmap(builder, bitmaps);
-//            }
-//        });
-//        for (int i = 0; i < builder.count; i++) {
-//            BitmapLoader.getInstance(builder.context).asyncLoad(i, builder.urls[i],  builder.itemWidth,  builder.itemWidth, handler);
-//        }
-//    }
 
-//    public Bitmap syncLoadBuilder(Builder builder) {
-//
-//        String urlKey = buildTargetSynthesizedId(builder.urls);
-//
-//        // 尝试从内存缓存中读取
-//        String key = Utils.hashKeyFormUrl(urlKey);
-//        Bitmap bitmap = lruCacheHelper.getBitmapFromMemCache(key);
-//        if (bitmap != null) {
-//            Log.e(TAG, "load from memory:" + urlKey);
-//            return bitmap;
-//        }
-//
-//        // 尝试从磁盘缓存中读取
-//        bitmap = loadBitmapFromDiskCache(url, reqWidth, reqHeight);
-//        if (bitmap != null) {
-//            Log.e(TAG, "load from disk:" + url);
-//            return bitmap;
-//        }
-//
-//    }
+    public void aysncLoadBuilder(final Builder builder, final Builder.OnNineAvatarCallback avatarCallback) {
 
-//    private void saveBuildSynthesizedBitmap(Builder builder, Bitmap[] bitmaps) {
-//        Bitmap result = builder.layoutManager.combineBitmap(builder.imageWidth, builder.itemWidth, builder.dividerWidth, builder.dividerColor, bitmaps);
-//        String buildSynthesizedId = buildTargetSynthesizedId(builder.urls);
-//        try {
-//            result = saveBitmap(buildSynthesizedId, result);
-//            Log.d("NicePic", "bitmap:" + result);
-//        } catch (IOException e) {
-//            e.printStackTrace();
-//        }
-//    }
+        //从缓存取九宫格头像
+        aysncLoadNineAvatarFromCache(builder, avatarCallback);
+
+        //九宫格头像没有缓存
+        if (!isExsitNineAvatar(builder.urls)) {
+            //生成九宫格占位图
+//            asyncLoadNinePlaceholder(builder, avatarCallback);
+
+            //网络取头像进行合成
+            asyncNineAvatarFromRemote(builder, avatarCallback);
+        }
+    }
+
+    /**
+     * 生成placeholder的九宫格占位图
+     * @param builder
+     */
+    private void asyncLoadNinePlaceholder(final Builder builder, final Builder.OnNineAvatarCallback avatarCallback) {
+
+        Runnable task = new Runnable() {
+            @Override
+            public void run() {
+
+                //生成PlaceHolder占位符
+                Bitmap placeholder = loadBitmapFromRes(builder.placeholder, builder.itemWidth, builder.itemWidth);
+                final Bitmap placeholderAvatar = builder.layoutManager.makePlaceholderAvatar(builder.imageWidth, builder.itemWidth, builder.dividerWidth, builder.dividerColor, builder.count, placeholder);
+                if (placeholderAvatar == null) return;
+                mHandler.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        avatarCallback.onCompeleteAvatar("NineAvatar draw placehold image", placeholderAvatar);
+                    }
+                });
+            }
+        };
+
+        ThreadPool.getInstance().execute(task);
+    }
+
+    /**
+     * 取本地缓存的合成九宫格头像
+     * @param builder
+     */
+    private void aysncLoadNineAvatarFromCache(final Builder builder, final Builder.OnNineAvatarCallback avatarCallback) {
+        Runnable task = new Runnable() {
+            @Override
+            public void run() {
+
+                JokerLog.d(this.getClass().getSimpleName() + "Task for NineAvatar:" + Thread.currentThread());
+
+                //取缓存
+                final Bitmap nineAvatar = loadNineAvatarFromCache(builder.urls, builder.imageWidth, builder.imageWidth);
+                if (nineAvatar == null) return;
+
+                mHandler.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        avatarCallback.onCompeleteAvatar("NineAvatar read Cache image", nineAvatar);
+                    }
+                });
+            }
+        };
+
+        ThreadPool.getInstance().execute(task);
+    }
 
     /**
      * 从缓存中查找合成的图片
@@ -116,7 +142,7 @@ public class BitmapLoader {
      * @param reqHeight
      * @return
      */
-    private Bitmap loadBitmapForUrls(String[] urls, int reqWidth, int reqHeight) {
+    private Bitmap loadNineAvatarFromCache(String[] urls, int reqWidth, int reqHeight) {
         String url = buildSynthesizedUrl(urls);
         // 尝试从内存缓存中读取
         String key = Utils.hashKeyFormUrl(url);
@@ -139,70 +165,76 @@ public class BitmapLoader {
         return null;
     }
 
-    public Bitmap loadBuilderFromCache(Builder builder) {
-        return loadBitmapForUrls(builder.urls, builder.imageWidth, builder.imageWidth);
-    }
+    /**
+     * 从Remote Http取头像
+     * @param builder
+     */
+    private void asyncNineAvatarFromRemote(final Builder builder, final Builder.OnNineAvatarCallback avatarCallback) {
+        MultiImage multiImage = new MultiImage(builder.count, new OnMuilteCompeleteListener(){
 
-    public void aysncLoadBuilder(final Builder builder, final OnNineAvatarCallback callback) {
-        //Muilte avatar DownLoad finish Callback
-        NineAvatarCallBack nineAvatarCallBack = new NineAvatarCallBack(builder.count) {
             @Override
-            public void onCompeleteNineBitmap(Bitmap avatar) {
-                if (callback != null) {
-                    callback.onHanldeAvatar(avatar);
+            public void onMuilteCompelete(Bitmap[] bitmaps) {
+                //九宫格数据加载完毕，合成头像
+                final Bitmap nineAvatar = builder.layoutManager.makeNineAvatar(builder.imageWidth, builder.itemWidth, builder.dividerWidth, builder.dividerColor, bitmaps);
+                //缓存NineAvatar
+                if (nineAvatar != null) {
+                    saveNineAvatar2Cache(builder.urls, nineAvatar);
                 }
+                mHandler.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        avatarCallback.onCompeleteAvatar("NineAvatar drawn image", nineAvatar);
+                    }
+                });
             }
+        });
 
-            @Override
-            public Bitmap onAsyncCompelteBitmaps(Bitmap[] bitmaps) {
-                Bitmap result = builder.layoutManager.makeNineAvatar(builder.imageWidth, builder.itemWidth, builder.dividerWidth, builder.dividerColor, bitmaps);
-                cacheNineAvatar(builder.urls, result);
-                return result;
-            }
-        };
-
-        //取缓存
-        Bitmap result = loadBuilderFromCache(builder);
-        if (result != null) {
-            callback.onHanldeAvatar(result);
-            return;
-        }
-
-        //生成PlaceHolder占位符
-        Bitmap placeholder = loadBitmapFromRes(builder.placeholder, builder.itemWidth, builder.itemWidth);
-        result = builder.layoutManager.makePlaceholderAvatar(builder.imageWidth, builder.itemWidth, builder.dividerWidth, builder.dividerColor, builder.count, placeholder);
-        if (result != null) {
-            callback.onHanldeAvatar(result);
-        }
 
         //取每个格子的图片
         for (int index = 0; index < builder.urls.length; index++) {
-            asyncLoadBitmap(index, builder.urls[index], builder.placeholder, builder.itemWidth, builder.itemWidth, nineAvatarCallBack);
+            asyncLoadSingleImageFromRemote(index, builder.urls[index], builder.placeholder, builder.itemWidth, builder.itemWidth, multiImage, avatarCallback);
         }
     }
 
-    private void asyncLoadBitmap(final int index, final String url, final int place, final int reqWidth, final int reqHeight, final NineAvatarCallBack nineAvatarCallBack) {
+    /**
+     * 取九宫格中的单张图片
+     * @param index
+     * @param url
+     * @param place
+     * @param reqWidth
+     * @param reqHeight
+     * @param multiImage
+     * @param avatarCallback
+     */
+    private void asyncLoadSingleImageFromRemote(final int index, final String url, final int place, final int reqWidth, final int reqHeight, final MultiImage multiImage, final Builder.OnNineAvatarCallback avatarCallback) {
         Runnable task = new Runnable() {
             @Override
             public void run() {
+                JokerLog.d(this.getClass().getSimpleName() + "Task for SingleImage:" + Thread.currentThread());
+
                 Bitmap bitmap = loadBitmap(url, reqWidth, reqHeight);
-                if (bitmap == null) {
-                    //加载图像用占位符替换
-                    bitmap = loadBitmapFromRes(place, reqWidth, reqHeight);
-                }
-                nineAvatarCallBack.onTaskCompeleteBitmap(index, bitmap);
+                if (bitmap == null) bitmap = loadBitmapFromRes(place, reqWidth, reqHeight);
+                multiImage.putTaskCompeleteBitmap(index, bitmap);
             }
         };
 
         if (collectUndoTasks(url, task)) {
+            JokerLog.d(this.getClass().getSimpleName() + "Task for avatar, add to undoTasks:" + "\n");
+
             return;
         }
 
         ThreadPool.getInstance().execute(task);
     }
 
-    private void cacheNineAvatar(String[] urls, Bitmap bitmap) {
-        if (urls == null || bitmap == null) return;
+    /**
+     * 缓存合成的九宫格头像
+     *
+     * @param urls
+     * @param nineAvatar
+     */
+    private void saveNineAvatar2Cache(String[] urls, Bitmap nineAvatar) {
+        if (urls == null || nineAvatar == null) return;
         String url = buildSynthesizedUrl(urls);
         String key = Utils.hashKeyFormUrl(url);
         try {
@@ -210,7 +242,7 @@ public class BitmapLoader {
             if (editor != null) {
                 OutputStream outputStream = editor.newOutputStream(0);
                 ByteArrayOutputStream baos = new ByteArrayOutputStream();
-                bitmap.compress(Bitmap.CompressFormat.PNG, 100, baos);
+                nineAvatar.compress(Bitmap.CompressFormat.PNG, 100, baos);
                 outputStream.write(baos.toByteArray());
                 outputStream.flush();
                 editor.commit();
@@ -223,6 +255,11 @@ public class BitmapLoader {
         }
     }
 
+    /**
+     * 将Res资源id序列化为唯一索引
+     * @param res
+     * @return
+     */
     private String int2Url(int res) {
         return "harry_bine_avatar_load_from_res:" + res;
     }
@@ -252,7 +289,7 @@ public class BitmapLoader {
                 return bitmap;
             }
 
-            bitmap = CompressHelper.getInstance().compressResource(mContext.getResources(), res, reqWidth, reqHeight);
+            bitmap = CompressHelper.getInstance().compressResource(mResources, res, reqWidth, reqHeight);
             DiskLruCache.Editor editor = mDiskLruCache.edit(key);
             if (editor != null) {
                 OutputStream outputStream = editor.newOutputStream(0);
@@ -290,6 +327,13 @@ public class BitmapLoader {
         return buffer.toString();
     }
 
+    /**
+     * 取单张图片
+     * @param url
+     * @param reqWidth
+     * @param reqHeight
+     * @return
+     */
     private Bitmap loadBitmap(String url, int reqWidth, int reqHeight) {
         // 尝试从内存缓存中读取
         String key = Utils.hashKeyFormUrl(url);
@@ -361,6 +405,28 @@ public class BitmapLoader {
             }
             Utils.close(out);
             Utils.close(in);
+        }
+        return false;
+    }
+
+    /**
+     * 九宫格图片是否存在缓存
+     * @param urls
+     * @return
+     */
+    private boolean isExsitNineAvatar(String[] urls) {
+        try {
+            String url = buildSynthesizedUrl(urls);
+            String key = Utils.hashKeyFormUrl(url);
+            if (lruCacheHelper.getBitmapFromMemCache(key) != null) {
+                return true;
+            }
+
+            if (mDiskLruCache.get(key) != null) {
+                return true;
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
         }
         return false;
     }

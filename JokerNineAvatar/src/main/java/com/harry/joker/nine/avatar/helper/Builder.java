@@ -1,15 +1,15 @@
 package com.harry.joker.nine.avatar.helper;
 
 import android.content.Context;
+import android.graphics.Bitmap;
 import android.graphics.Color;
 import android.widget.ImageView;
-
-import androidx.annotation.ColorInt;
-
 import com.harry.joker.nine.avatar.R;
 import com.harry.joker.nine.avatar.layout.DingLayoutManager;
 import com.harry.joker.nine.avatar.layout.ILayoutManager;
 import com.harry.joker.nine.avatar.layout.WechatLayoutManager;
+import com.harry.joker.nine.avatar.remote.Options;
+import com.harry.joker.nine.avatar.remote.RemoteLoader;
 
 
 public class Builder {
@@ -49,7 +49,7 @@ public class Builder {
 
     public String[] urls;
 
-    public RequestOptions mRequestOptions;
+    public Options mRemoteOptions;
 
     public Builder(Context context) {
         this.context = context;
@@ -73,7 +73,7 @@ public class Builder {
         return this;
     }
 
-    public Builder setDividerColor(@ColorInt int dividerColor) {
+    public Builder setDividerColor( int dividerColor) {
         this.dividerColor = dividerColor;
         return this;
     }
@@ -102,18 +102,19 @@ public class Builder {
         return this;
     }
 
-    public Builder setUrls(RequestOptions requestOptions) {
-        this.mRequestOptions = requestOptions;
-        if (mRequestOptions != null) {
-            this.mRequestOptions.setOnUrlsResponse(mUrlsResponse);
+    public Builder setUrls(Options options) {
+        this.mRemoteOptions = options;
+        if (mRemoteOptions == null) {
+            throw new NullPointerException("Use Options Request Urls, Options can not null ");
         }
         return this;
     }
 
-    private RequestOptions.OnUrlsResponse mUrlsResponse = new RequestOptions.OnUrlsResponse() {
+
+    private Options.OnRemoteCallback mRemoteCallback = new Options.OnRemoteCallback() {
         @Override
-        public void onUrlsResponse(Object tag, String[] urls) {
-            resetBuilerForUrls(urls);
+        public void onRemoteReponse(String[] urls) {
+            rebuildBuilderForAvatar(urls);
         }
     };
 
@@ -124,14 +125,13 @@ public class Builder {
      * 3，RequestOptions设置null属性
      * @param urls
      */
-    private void resetBuilerForUrls(String[] urls) {
+    private void rebuildBuilderForAvatar(String[] urls) {
         this.urls = urls;
         this.count = urls == null ? 0 : urls.length;
-        mRequestOptions = null;
 
-        JokerLog.d(this.getClass().getSimpleName() + ", Setup async loaded remoteUrls， urls：" + count + "  contine next build to async nineAvatar");
+        JokerLog.d(this.getClass().getSimpleName() + ", Reset Builder By load RemoteUrls， urls：" + count + "\n ------  ReBuild to Async NineAVatar ------");
 
-        build();
+        buildBuilder();
     }
 
 
@@ -144,16 +144,30 @@ public class Builder {
             layoutManager = new WechatLayoutManager();
         }
 
+        if (mRemoteOptions != null) {
+            buildOptions();
+        } else {
+            buildBuilder();;
+        }
+    }
+
+    private void buildBuilder() {
         //计算效验单个小头像的宽度
         itemWidth = makeItemWidth(imageWidth, dividerWidth, layoutManager, count);
 
-        if (mRequestOptions == null) {
-            NineAvatarHelper.init().load(this);
-        } else {
-            mRequestOptions.apply(tag);
-        }
+        JokerLog.d(this.getClass().getSimpleName() + ", ---------- Builder build Done -----------");
 
-        JokerLog.d(this.getClass().getSimpleName() + ", Builder build done");
+        NineAvatarHelper.init().load(this);
+    }
+
+    private void buildOptions() {
+        JokerLog.d(this.getClass().getSimpleName() + ", ------ Builder Options build for Tag (" + tag + ") Done -------");
+        JokerLog.d(this.getClass().getSimpleName() + "Task for Remote By Tag:" + tag);
+        NineAvatarHelper.init().loadOptions(context, mRemoteOptions, mRemoteCallback);
+    }
+
+    public interface OnNineAvatarCallback {
+        void onCompeleteAvatar(String tip, Bitmap bitmap);
     }
 
 

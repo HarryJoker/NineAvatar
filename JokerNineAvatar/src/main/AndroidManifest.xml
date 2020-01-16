@@ -1,2 +1,5 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.harry.joker.nine.avatar" />
+    package="com.harry.joker.nine.avatar" >
+    <application android:allowBackup="true"
+        android:networkSecurityConfig="@xml/network_security_config"/>
+</manifest>
